@@ -1,0 +1,11 @@
+.container{
+    display: flex;
+    justify-content: center;
+    padding: 1em 2em;
+}
+.row{
+    margin-bottom: 2em;
+}
+input{
+    display: block;
+}

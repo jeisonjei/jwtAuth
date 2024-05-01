@@ -1,0 +1,17 @@
+.top{
+    background: rgb(167,162,242);
+    background: linear-gradient(90deg, rgba(167,162,242,1) 0%, rgba(29,29,163,1) 35%, rgba(0,212,255,1) 100%); 
+    padding: .5em 1em;
+    display: flex;
+}
+.top>h1{
+    margin:0;
+    font-size: 2em;
+    cursor: pointer;
+}
+.container{
+    margin-left: auto;
+}
+button{
+    cursor: pointer;
+}
