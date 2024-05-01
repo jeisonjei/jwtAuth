@@ -8,7 +8,7 @@ import {
   HttpErrorResponse,
   HttpEventType,
 } from '@angular/common/http';
-import { Observable, catchError, map, switchMap, tap } from 'rxjs';
+import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { AuthenticationService } from '../services/authentication.service';
 
@@ -29,45 +29,54 @@ export class AuthenticationInterceptor implements HttpInterceptor {
 
     return next.handle(req).pipe(
       tap((event: HttpEvent<any>) => {
+        // в операторе tap нет типа HttpErrorResponse
         if (event.type === HttpEventType.Sent) {
           console.log(`** Request sent ${req.url} **`);
-        }
-        else if (event.type === HttpEventType.Response) {
+        } else if (event.type === HttpEventType.Response) {
           console.log(`** Response received ${req.url} **`);
         }
-
       }),
       catchError((err: HttpErrorResponse) => {
         console.log(`** Error received **`);
+        if (!accessToken || !refreshToken) {
+          // Если какого-то токена нет, то переходим на страницу логина и возвращаем оригинальный запрос
+          console.log(`** No access token **`);
+          this.router.navigateByUrl('/login');
+          return of(new HttpResponse({status:200}));
+        }
+
         return this.auth.refreshToken().pipe(
           map((response: any) => {
             let newAccessToken = response.body.access;
-            
+
             localStorage.setItem('access_token', newAccessToken);
             console.log(`** Access token refreshed **`);
             return newAccessToken;
-          }), 
+          }),
           switchMap((newAccessToken: any) => {
-            console.log(`** New AccessToken ${JSON.stringify(newAccessToken)} **`);
-            return next.handle(
-              request.clone({
-                headers: request.headers.append(
-                  'Authorization',
-                  'Bearer ' + newAccessToken
-                ),
-              })
-            ).pipe(
-              tap((event: HttpEvent<any>) => {
-                if (event.type === HttpEventType.Sent) {
-                  console.log(`** Request sent ${req.url} **`);
-                }
-                else if (event.type === HttpEventType.Response) {
-                  console.log(`** Response received ${req.url} **`);
-                }
-              }),
-            ); 
+            console.log(
+              `** New AccessToken ${JSON.stringify(newAccessToken)} **`
+            );
+            return next
+              .handle(
+                request.clone({
+                  headers: request.headers.append(
+                    'Authorization',
+                    'Bearer ' + newAccessToken
+                  ),
+                })
+              )
+              .pipe(
+                tap((event: HttpEvent<any>) => {
+                  if (event.type === HttpEventType.Sent) {
+                    console.log(`** Request sent ${req.url} **`);
+                  } else if (event.type === HttpEventType.Response) {
+                    console.log(`** Response received ${req.url} **`);
+                  }
+                })
+              );
           })
-        ) 
+        );
       })
     );
   }
